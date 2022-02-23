@@ -1,4 +1,4 @@
-let ws = new WebSocket("ws://localhost:8080");
+let ws = new WebSocket("ws://localhost:8080/chat");
 
 ws.send("hi from client");
 
