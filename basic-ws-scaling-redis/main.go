@@ -29,6 +29,18 @@ func chatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Println("removing client")
+		for i, client := range clients {
+			if client.Conn == conn {
+				clients = append(clients[:i], clients[i+1:]...)
+				break
+			}
+		}
+
+		return nil
+	})
+
 	client := chat.NewClient(conn, redisClient, channel)
 
 	clients = append(clients, client)
