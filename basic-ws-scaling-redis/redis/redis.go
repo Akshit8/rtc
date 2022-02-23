@@ -2,6 +2,8 @@ package redis
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -16,9 +18,24 @@ type clientImpl struct {
 }
 
 func NewClient() Client {
+	var host, port string
+
+	if os.Getenv("REDIS_HOST") != "" {
+		host = os.Getenv("REDIS_HOST")
+	} else {
+		host = "localhost"
+	}
+
+	if os.Getenv("REDIS_PORT") != "" {
+		port = os.Getenv("REDIS_PORT")
+	} else {
+		port = "6379"
+	}
+
+	addr := fmt.Sprintf("%s:%s", host, port)
 	return &clientImpl{
 		client: redis.NewClient(&redis.Options{
-			Addr: "localhost:6379",
+			Addr: addr,
 		}),
 	}
 }

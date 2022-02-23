@@ -1,0 +1,33 @@
+version: "3.7"
+
+services:
+  redis:
+    image: redis:alpine
+
+  alpha:
+    image: chat-app
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_TAG: alpha
+    depends_on:
+      - redis
+
+  beta:
+    image: chat-app
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_TAG: beta
+    depends_on:
+      - redis
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - alpha
+      - beta

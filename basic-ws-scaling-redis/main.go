@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"ws-scaling/chat"
 	"ws-scaling/redis"
 
 	"github.com/gorilla/websocket"
@@ -15,30 +18,9 @@ var ugrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-type client struct {
-	conn *websocket.Conn
-}
-
-func (c client) reader() {
-	defer c.conn.Close()
-
-	for {
-		_, msg, err := c.conn.ReadMessage()
-		if err != nil {
-			log.Printf("Error reading message: %v", err)
-			return
-		}
-
-		err = redisClient.Publish(context.Background(), channel, string(msg))
-		if err != nil {
-			log.Printf("Error publishing message: %v", err)
-			return
-		}
-	}
-}
-
-var clients []client
+var clients []chat.Client
 var redisClient redis.Client
+var apptag string
 
 func chatHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := ugrader.Upgrade(w, r, nil)
@@ -47,19 +29,23 @@ func chatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := client{
-		conn: conn,
-	}
+	client := chat.NewClient(conn, redisClient, channel)
 
 	clients = append(clients, client)
 
-	go client.reader()
+	go client.Reader()
 
-	redisClient.Publish(context.Background(), channel, "New user joined")
+	redisClient.Publish(context.Background(), channel, "new user joined the chat")
 }
 
 func main() {
-	clients = make([]client, 0)
+	if os.Getenv("APP_TAG") != "" {
+		apptag = os.Getenv("APP_TAG")
+	} else {
+		apptag = "chat"
+	}
+
+	clients = make([]chat.Client, 0)
 
 	redisClient = redis.NewClient()
 
@@ -74,7 +60,8 @@ func main() {
 			}
 
 			for _, client := range clients {
-				err = client.conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
+				newMsg := fmt.Sprintf("%s: %s", apptag, msg.Payload)
+				err = client.Conn.WriteMessage(websocket.TextMessage, []byte(newMsg))
 				if err != nil {
 					log.Printf("Error sending message: %v", err)
 					return
