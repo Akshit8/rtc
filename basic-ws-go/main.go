@@ -9,11 +9,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: checkOrigin,
-}
-
-func checkOrigin(r *http.Request) bool {
-	return true
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 func handleWebSocket(w http.ResponseWriter, req *http.Request) {
@@ -22,39 +18,47 @@ func handleWebSocket(w http.ResponseWriter, req *http.Request) {
 		log.Println("Error upgrading connection:", err)
 		return
 	}
-	defer conn.Close()
 
-	for {
-		// conn.SetCloseHandler(func(code int, text string) error {
-		// 	log.Println("Got close message:", code, text)
-		// 	conn.Close()
-		// 	return nil
-		// })
+	signal := make(chan bool)
 
-		mt, msg, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Error reading message:", err)
-			return
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Println("Got close message:", code, text)
+		signal <- true
+		conn.Close()
+		return nil
+	})
+
+	go func() {
+		for {
+			select {
+			case <-signal:
+				return
+			default:
+				mt, msg, err := conn.ReadMessage()
+				if err != nil {
+					log.Println("Error reading message:", err)
+					return
+				}
+				log.Printf("Got message: %s", msg)
+
+				err = conn.WriteMessage(mt, msg)
+				if err != nil {
+					log.Println("Error writing message:", err)
+					return
+				}
+			}
 		}
-		log.Printf("Got message: %s", msg)
-
-		err = conn.WriteMessage(mt, msg)
-		if err != nil {
-			log.Println("Error writing message:", err)
-			return
-		}
-
-		// writeMessageEvery5s(conn)
-	}
+	}()
 }
 
-func writeMessageEvery5s(conn *websocket.Conn) {
+func WriteMessageEvery5s(conn *websocket.Conn) {
 	for {
 		err := conn.WriteMessage(websocket.TextMessage, []byte("Hello from server"))
 		if err != nil {
 			log.Println("Error writing message:", err)
 			return
 		}
+
 		time.Sleep(5 * time.Second)
 	}
 }

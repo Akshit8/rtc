@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -46,7 +47,7 @@ func main() {
 		case <-done:
 			return
 		case t := <-ticker.C:
-			err := conn.WriteMessage(websocket.TextMessage, []byte(t.String()))
+			err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Hello from client at %v", t)))
 			if err != nil {
 				log.Println("write:", err)
 				return
