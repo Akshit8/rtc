@@ -54,7 +54,7 @@ func main() {
 			}
 		case <-interupt:
 			log.Println("interupt")
-			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closing"))
 			if err != nil {
 				log.Println("write close:", err)
 				return
