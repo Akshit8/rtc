@@ -63,17 +63,19 @@ func main() {
 
 	subscriber := redisClient.Subscribe(context.Background(), channel)
 
+	ch := subscriber.Channel()
+
 	go func() {
-		for {
-			msg, err := subscriber.ReceiveMessage(context.Background())
-			if err != nil {
-				log.Printf("Error receiving message: %v", err)
-				return
-			}
+		for msg := range ch {
+			// msg, err := subscriber.ReceiveMessage(context.Background())
+			// if err != nil {
+			// 	log.Printf("Error receiving message: %v", err)
+			// 	return
+			// }
 
 			for _, client := range clients {
 				newMsg := fmt.Sprintf("%s: %s", apptag, msg.Payload)
-				err = client.Conn.WriteMessage(websocket.TextMessage, []byte(newMsg))
+				err := client.Conn.WriteMessage(websocket.TextMessage, []byte(newMsg))
 				if err != nil {
 					log.Printf("Error sending message: %v", err)
 					return

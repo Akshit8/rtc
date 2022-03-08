@@ -1,3 +1,5 @@
+.PHONY: redis
+
 run:
 	go run main.go
 
